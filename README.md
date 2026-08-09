@@ -1,1 +1,1 @@
-# RAG-retrieval-quality-diagnostic
+Retrieval Failure Diagnostician
