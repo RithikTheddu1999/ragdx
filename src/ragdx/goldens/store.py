@@ -85,9 +85,7 @@ def save(
     return goldens_path, manifest_path
 
 
-def load(
-    directory: Path, version: int | None = None
-) -> tuple[list[Golden], GoldenSetManifest]:
+def load(directory: Path, version: int | None = None) -> tuple[list[Golden], GoldenSetManifest]:
     """Load a golden set version, defaulting to the latest."""
     versions = available_versions(directory)
     if not versions:

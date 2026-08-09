@@ -122,13 +122,20 @@ class Trace(BaseModel):
 
 
 class AblationResult(BaseModel):
-    """Outcome of re-running retrieval under one counterfactual condition."""
+    """Outcome of re-running retrieval under one counterfactual condition.
+
+    ``skipped`` matters: "we re-ran with the filter off and it still failed" and
+    "we could not re-run without the filter" are different findings, and
+    collapsing them into ``recovered=False`` would let the classifier rule out a
+    cause it never actually tested.
+    """
 
     model_config = ConfigDict(frozen=True)
 
     ablation_name: str
     recovered: bool
     recovered_at_rank: int | None = Field(default=None, ge=0)
+    skipped: bool = False
     detail: str = ""
 
     @model_validator(mode="after")
@@ -139,6 +146,8 @@ class AblationResult(BaseModel):
             raise ValueError(
                 f"{self.ablation_name}: recovered=False must not set recovered_at_rank"
             )
+        if self.skipped and self.recovered:
+            raise ValueError(f"{self.ablation_name}: a skipped ablation cannot have recovered")
         return self
 
 

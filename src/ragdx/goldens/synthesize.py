@@ -148,9 +148,7 @@ def synthesize(
         doc = by_doc.get(chunk.doc_id)
         if doc is None:
             rejections.append(
-                Rejection(
-                    reason=RejectReason.UNKNOWN_DOCUMENT, detail=chunk.doc_id, source=source
-                )
+                Rejection(reason=RejectReason.UNKNOWN_DOCUMENT, detail=chunk.doc_id, source=source)
             )
             continue
 
@@ -196,9 +194,7 @@ def synthesize(
             rejections.append(Rejection(reason=RejectReason.NO_DISTRACTOR, source=source))
             continue
 
-        negative = judge.judge(
-            answerability_prompt(candidate["question"], distractor.text), LABELS
-        )
+        negative = judge.judge(answerability_prompt(candidate["question"], distractor.text), LABELS)
         if negative.abstained:
             rejections.append(
                 Rejection(

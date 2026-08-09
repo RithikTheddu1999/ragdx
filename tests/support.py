@@ -9,8 +9,10 @@ from typing import Any
 
 import yaml
 
+from ragdx.ablations.base import AblationConfig, DiagnosisTarget
 from ragdx.chunking import FixedSizeChunker
 from ragdx.corpus import Document, load_corpus
+from ragdx.index import DenseRetriever
 from ragdx.judge.base import JudgeVerdict
 from ragdx.schema import Chunk, Golden
 from ragdx.spans import find_span
@@ -129,3 +131,22 @@ class ScriptedJudge:
 def scripted_judge() -> ScriptedJudge:
     """Factory used by the CLI tests via `--judge support:scripted_judge`."""
     return ScriptedJudge()
+
+
+def fixture_target(docs: list[Document] | None = None) -> DiagnosisTarget:
+    """The fixture corpus wired up as a production retrieval setup to diagnose."""
+    docs = docs if docs is not None else load_fixture_corpus()
+    chunks = PRODUCTION_CHUNKER.chunk_all(docs)
+    return DiagnosisTarget(
+        retriever=DenseRetriever(chunks),
+        k=PRODUCTION_K,
+        filters=dict(PRODUCTION_FILTERS),
+        plane="dense",
+        chunks=chunks,
+        docs=docs,
+        config=AblationConfig(
+            rank_cutoff_k=RANK_CUTOFF_K,
+            alternate_chunk_size=ALTERNATE_CHUNKER.size,
+            alternate_chunk_overlap=ALTERNATE_CHUNKER.overlap,
+        ),
+    )

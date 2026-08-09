@@ -69,9 +69,7 @@ class TestGoldensBuild:
         assert runner.invoke(app, argv).exit_code == 0
         assert (tmp_path / "goldens" / "v2.jsonl").is_file()
 
-    def test_stub_judge_fails_loudly_rather_than_writing_an_empty_set(
-        self, tmp_path: Path
-    ) -> None:
+    def test_stub_judge_fails_loudly_rather_than_writing_an_empty_set(self, tmp_path: Path) -> None:
         result = runner.invoke(
             app,
             [
