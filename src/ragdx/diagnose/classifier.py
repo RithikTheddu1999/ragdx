@@ -17,8 +17,10 @@ from dataclasses import dataclass
 
 from ragdx.ablations.base import Ablation, DiagnosisTarget
 from ragdx.ablations.registry import first_recovery, run_battery
+from ragdx.judge.base import Judge
+from ragdx.judge.faithfulness import UNGROUNDED, assess_faithfulness
 from ragdx.matching import COVERAGE_THRESHOLD, best_coverage, chunk_satisfies, gold_rank
-from ragdx.schema import AblationResult, Diagnosis, FailureCause, Golden
+from ragdx.schema import AblationResult, Diagnosis, FailureCause, Golden, RetrievedChunk
 
 #: Which ablation names which cause. One ablation, one cause, no overlap.
 CAUSE_BY_ABLATION: dict[str, FailureCause] = {
@@ -55,6 +57,9 @@ class ClassifierConfig:
     #: Confidence when re-chunking did fix the coverage but the chunk still did
     #: not rank — the chunking is genuinely wrong, but so is something else.
     partial_boundary_confidence: float = 0.5
+    #: How sure the faithfulness judge must be before a retrieval hit is
+    #: downgraded to a generation failure. Below this, the hit stands.
+    faithfulness_min_confidence: float = 0.5
 
 
 @dataclass(frozen=True)
@@ -85,15 +90,20 @@ class Classifier:
         target: DiagnosisTarget,
         config: ClassifierConfig | None = None,
         battery: list[Ablation] | None = None,
+        judge: Judge | None = None,
     ) -> None:
         self.target = target
         self.config = config or ClassifierConfig()
         self.battery = battery
+        self.judge = judge
 
-    def classify_all(self, goldens: list[Golden]) -> list[Diagnosis]:
-        return [self.classify(g) for g in goldens]
+    def classify_all(
+        self, goldens: list[Golden], answers: dict[str, str] | None = None
+    ) -> list[Diagnosis]:
+        answers = answers or {}
+        return [self.classify(g, answers.get(g.golden_id)) for g in goldens]
 
-    def classify(self, golden: Golden) -> Diagnosis:
+    def classify(self, golden: Golden, answer: str | None = None) -> Diagnosis:
         target, cfg = self.target, self.config
 
         retrieved = target.retriever.retrieve(golden.query, target.k, target.filters)
@@ -101,15 +111,7 @@ class Classifier:
         if rank is not None:
             # Fast path. Most queries in a healthy set land here, and none of
             # them pays for an ablation.
-            return Diagnosis(
-                golden_id=golden.golden_id,
-                outcome="hit",
-                cause=None,
-                confidence=1.0,
-                ablation_results=[],
-                evidence=f"gold chunk retrieved at rank {rank} with k={target.k}",
-                gold_rank=rank,
-            )
+            return self._retrieval_succeeded(golden, answer, retrieved, rank)
 
         results = run_battery(target, golden, self.battery)
         recovery = first_recovery(results)
@@ -126,6 +128,52 @@ class Classifier:
                 )
 
         return self._nothing_recovered(golden, results)
+
+    def _retrieval_succeeded(
+        self,
+        golden: Golden,
+        answer: str | None,
+        retrieved: list[RetrievedChunk],
+        rank: int,
+    ) -> Diagnosis:
+        """The gold chunk came back. Was the answer built out of it?
+
+        This is the only place the generation plane is examined, and it is only
+        reached because retrieval already worked. Anything short of a confident
+        "ungrounded" leaves the hit standing — an abstaining judge must never
+        manufacture a failure.
+        """
+        found = f"gold chunk retrieved at rank {rank} with k={self.target.k}"
+        if answer and self.judge is not None:
+            verdict = assess_faithfulness(self.judge, golden.query, answer, retrieved)
+            confident = (
+                not verdict.abstained
+                and verdict.confidence >= self.config.faithfulness_min_confidence
+            )
+            if confident and verdict.label == UNGROUNDED:
+                because = f": {verdict.rationale}" if verdict.rationale else ""
+                return Diagnosis(
+                    golden_id=golden.golden_id,
+                    outcome="generation_failure",
+                    cause=FailureCause.GENERATION_UNGROUNDED,
+                    confidence=verdict.confidence,
+                    ablation_results=[],
+                    evidence=(
+                        f"{found}, but the answer is not grounded in the retrieved "
+                        f"context{because} — this is the generator's fault, not the "
+                        f"retriever's"
+                    ),
+                    gold_rank=rank,
+                )
+        return Diagnosis(
+            golden_id=golden.golden_id,
+            outcome="hit",
+            cause=None,
+            confidence=1.0,
+            ablation_results=[],
+            evidence=found,
+            gold_rank=rank,
+        )
 
     def _nothing_recovered(self, golden: Golden, results: list[AblationResult]) -> Diagnosis:
         target, cfg = self.target, self.config

@@ -150,3 +150,85 @@ def fixture_target(docs: list[Document] | None = None) -> DiagnosisTarget:
             alternate_chunk_overlap=ALTERNATE_CHUNKER.overlap,
         ),
     )
+
+
+NUMBER_WORDS = frozenset(
+    [
+        "zero",
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "ten",
+        "eleven",
+        "twelve",
+        "thirteen",
+        "fourteen",
+        "fifteen",
+        "sixteen",
+        "seventeen",
+        "eighteen",
+        "nineteen",
+        "twenty",
+        "thirty",
+        "forty",
+        "fifty",
+        "sixty",
+        "seventy",
+        "eighty",
+        "ninety",
+        "hundred",
+        "thousand",
+        "half",
+        "twice",
+        "double",
+    ]
+)
+
+
+def numeric_claims(text: str) -> set[str]:
+    """Digits and number words — where unfaithful answers usually give themselves away."""
+    return {t for t in tokenize(text) if t.isdigit() or t in NUMBER_WORDS}
+
+
+class ScriptedFaithfulnessJudge:
+    """A faithfulness judge that checks numeric claims instead of guessing.
+
+    Deterministic and offline: an answer is ungrounded when it asserts a number
+    the retrieved context never states. That is exactly the failure planted in
+    the fixture (48 hours vs the next payroll run, five times vs twice), and it
+    means the generation-plane tests exercise a real decision rather than a
+    hardcoded verdict.
+    """
+
+    name = "scripted-faithfulness-v1"
+
+    def __init__(self, abstain: bool = False) -> None:
+        self.abstain = abstain
+
+    def complete(self, prompt: str, *, max_tokens: int = 512) -> str:
+        return ""
+
+    def judge(self, prompt: str, labels: tuple[str, ...]) -> JudgeVerdict:
+        if self.abstain:
+            return JudgeVerdict(label=labels[0], confidence=0.0, abstained=True)
+        answer = prompt.split("ANSWER:\n", 1)[-1].split("\n\nCONTEXT:\n", 1)[0]
+        context = prompt.split("CONTEXT:\n", 1)[-1]
+        unsupported = numeric_claims(answer) - numeric_claims(context)
+        if unsupported:
+            return JudgeVerdict(
+                label="ungrounded",
+                confidence=0.9,
+                rationale=f"context never states {', '.join(sorted(unsupported))}",
+            )
+        return JudgeVerdict(label="grounded", confidence=0.9, rationale="every figure is supported")
+
+
+def fixture_answers() -> dict[str, str]:
+    """Recorded answers for the goldens that have them."""
+    return {f.golden.golden_id: f.answer for f in load_fixture_goldens() if f.answer}
