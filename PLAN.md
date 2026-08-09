@@ -167,44 +167,49 @@ class Chunk(BaseModel):
     chunk_id: str
     doc_id: str
     text: str
-    char_start: int          # offset in source doc — REQUIRED for boundary detection
+    char_start: int  # offset in source doc — REQUIRED for boundary detection
     char_end: int
     metadata: dict[str, Any] = {}
+
 
 class RetrievedChunk(BaseModel):
     chunk: Chunk
     score: float
-    rank: int                # 0-indexed
+    rank: int  # 0-indexed
+
 
 class Golden(BaseModel):
     golden_id: str
     query: str
     gold_doc_id: str
-    gold_char_start: int     # evidence span in the SOURCE DOC, not the chunk
+    gold_char_start: int  # evidence span in the SOURCE DOC, not the chunk
     gold_char_end: int
     expected_answer: str | None = None
     origin: Literal["synthetic", "human"]
     synth_confidence: float | None = None
+
 
 class Trace(BaseModel):
     trace_id: str
     query: str
     retrieved: list[RetrievedChunk]
     answer: str | None = None
-    config_snapshot: dict[str, Any]   # k, retriever type, filters, chunk params
+    config_snapshot: dict[str, Any]  # k, retriever type, filters, chunk params
+
 
 class AblationResult(BaseModel):
     ablation_name: str
     recovered: bool
     recovered_at_rank: int | None
 
+
 class Diagnosis(BaseModel):
     golden_id: str
     outcome: Literal["hit", "retrieval_failure", "generation_failure"]
-    cause: FailureCause | None        # enum; None when outcome == "hit"
+    cause: FailureCause | None  # enum; None when outcome == "hit"
     confidence: float
     ablation_results: list[AblationResult]
-    evidence: str                    # human-readable one-liner explaining the call
+    evidence: str  # human-readable one-liner explaining the call
 ```
 
 **Critical detail:** gold evidence is stored as a **character span in the source
@@ -467,3 +472,7 @@ Recorded here rather than made silently. See §7.
 |---|---|---|
 | 1 | Added `pyyaml` to core dependencies (not listed in §4) | §5 / Milestone 1 mandate `ragdx run --config ragdx.yaml`; YAML parsing has no stdlib equivalent. |
 | 2 | `mypy` has no `python_version` pin | numpy 2.5's bundled stubs use 3.12+ `type` statements, which fail to parse when mypy targets 3.11. mypy targets the running interpreter instead; the CI matrix covers 3.11–3.13. |
+| 3 | Modules not in the §5 layout: `corpus.py`, `chunking.py`, `embedding.py`, `index.py`, `matching.py`, `spans.py`, `text.py` | §5 names the modules that carry features; these are the primitives underneath them. `matching.py` matters most: one definition of "did retrieval satisfy this golden", shared by the runner, every ablation and the classifier, so they cannot drift apart. |
+| 4 | Fixture rank-cutoff ablation depth is 20, not the §2 illustration of 100 | The depth is a config value defaulting to 100. The fixture index is 213 chunks; at k=100 the ablation degenerates into "return half the corpus", which is not a fix anyone can ship. 20 is 4× the fixture's production `k`. |
+| 5 | A retrieval "satisfies" a golden only when one chunk covers ≥75% of the evidence span | Plain overlap would score a boundary-split span as a hit, hiding the most actionable failure mode in the tool. See `matching.py`. |
+| 6 | Two candidate `vocabulary_mismatch` fixtures were dropped rather than labelled | They landed outside the rerank depth *and* outside `k` on the lexical plane, so no ablation recovers them and no label is defensible. Ambiguous cases do not belong in a yardstick. See `tests/fixtures/README.md`. |

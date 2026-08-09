@@ -1,0 +1,412 @@
+# Fixture golden set for the planted-failure corpus.
+#
+# `evidence` is quoted text from the document body; the loader resolves it to a
+# character span with whitespace normalized, so these stay readable and survive
+# re-wrapping of the source documents.
+#
+# `planted` is the GROUND TRUTH — the failure deliberately built into the
+# corpus. It is authored from intent and confirmed by primitive retrieval
+# measurements (rank of the gold chunk, span coverage under each chunking,
+# whether the production filter excludes the document). It is never derived from
+# running the classifier. See tests/fixtures/README.md.
+
+# =============================================================================
+# TRUE NEGATIVES — retrieval works. A classifier that cries wolf fails here.
+# =============================================================================
+
+- golden_id: h01
+  query: What ECT rating is required for a double wall carton over five kilograms?
+  doc_id: packaging-standards
+  evidence: >-
+    Every parcel must use a double wall corrugated carton rated to at least 32 ECT
+    when the gross weight exceeds five kilograms.
+  planted: hit
+  answer: A double wall corrugated carton rated to at least 32 ECT is required above five kilograms.
+
+- golden_id: h02
+  query: How many weeks of parental leave at full pay does Northwind offer?
+  doc_id: parental-leave
+  evidence: >-
+    The entitlement is twenty six weeks at full pay, available to any employee with
+    twelve months of continuous service at the expected date of arrival.
+  planted: hit
+
+- golden_id: h03
+  query: How many days per month must hybrid employees attend a site?
+  doc_id: remote-work-policy
+  evidence: Hybrid roles attend a named site at least eight days per month.
+  planted: hit
+
+- golden_id: h04
+  query: How long are shipment records retained?
+  doc_id: data-retention
+  evidence: >-
+    Shipment records including consignee name and address are retained for seven
+    years from the delivery date.
+  planted: hit
+  answer: Shipment records are retained for seven years from the delivery date.
+
+- golden_id: h05
+  query: What is the default requests per minute ceiling for the rates scope?
+  doc_id: api-rate-limits
+  evidence: one hundred and twenty requests per minute for the rates scope
+  planted: hit
+
+- golden_id: h06
+  query: How long is an OAuth access token valid?
+  doc_id: api-authentication
+  evidence: The token is valid for one hour.
+  planted: hit
+
+- golden_id: h07
+  query: Within how many days must an expense claim be submitted?
+  doc_id: expense-reimbursement
+  evidence: Claims are submitted in the expense tool within sixty days of the expense date.
+  planted: hit
+
+- golden_id: h08
+  query: What is the manual handling limit for a lift above shoulder height?
+  doc_id: warehouse-safety
+  evidence: sixteen kilograms above shoulder height
+  planted: hit
+
+- golden_id: h09
+  query: How often are trailers inspected?
+  doc_id: fleet-maintenance
+  evidence: >-
+    Trailers are inspected every twelve weeks with a full brake test at every second
+    inspection.
+  planted: hit
+
+- golden_id: h10
+  query: How long is a return label valid?
+  doc_id: returns-policy
+  evidence: a return label is generated and is valid for twenty eight days
+  planted: hit
+
+- golden_id: h11
+  query: When must the first status page entry be published?
+  doc_id: status-page-runbook
+  evidence: The first entry goes up within ten minutes of the incident being acknowledged
+  planted: hit
+
+- golden_id: h12
+  query: At what time is the morning dispatch wave built?
+  doc_id: dispatch-scheduling
+  evidence: >-
+    The morning wave is built at 05:30 and covers everything that arrived overnight
+    by linehaul.
+  planted: hit
+
+- golden_id: h13
+  query: How long are reefer units pre-cooled before loading?
+  doc_id: cold-chain
+  evidence: Reefer units are pre-cooled for a minimum of ninety minutes before loading.
+  planted: hit
+
+- golden_id: h14
+  query: Who is billed for duty when the incoterm is DDP?
+  doc_id: customs-brokerage
+  evidence: >-
+    Where the incoterm is DDP the charges are billed to the shipper's account within
+    two business days of clearance.
+  planted: hit
+
+- golden_id: h15
+  query: What is the operational deadline inside the depot for a shipment to move on the current transit day?
+  doc_id: dispatch-scheduling
+  evidence: >-
+    The evening wave is built at 19:45 and is the last chance for a shipment to move
+    on the current transit day.
+  planted: hit
+
+- golden_id: h16
+  query: How are transit days counted for a shipment?
+  doc_id: shipping-service-tiers
+  evidence: >-
+    Transit days count business days in the destination country and exclude the day
+    of pickup.
+  planted: hit
+
+- golden_id: h17
+  query: Where on the operations floor are high visibility vests required?
+  doc_id: warehouse-safety
+  evidence: >-
+    High visibility vests are required anywhere on the operations floor, including
+    the mezzanine and the yard.
+  planted: hit
+
+- golden_id: h18
+  query: What must a commercial invoice state for a customs shipment?
+  doc_id: customs-brokerage
+  evidence: >-
+    The invoice must state the incoterm, the country of origin, the gross and net
+    weight, and a tariff classification for every line.
+  planted: hit
+
+- golden_id: h19
+  query: How many turns of shrink wrap are required at the base of a pallet?
+  doc_id: packaging-standards
+  evidence: Pallets must be shrink wrapped with a minimum of four full turns at the base
+  planted: hit
+
+- golden_id: h20
+  query: How much of the empty volume must void fill occupy?
+  doc_id: packaging-standards
+  evidence: Void fill must occupy at least eighty percent of the empty volume.
+  planted: hit
+
+- golden_id: h21
+  query: When must a duty manager post a delay notice?
+  doc_id: dispatch-scheduling
+  evidence: >-
+    If a wave is running more than forty minutes behind, the duty manager must post
+    a delay notice to the depot channel
+  planted: hit
+
+- golden_id: h22
+  query: Where is steel toe footwear required?
+  doc_id: warehouse-safety
+  evidence: >-
+    Steel toe footwear is required in the inbound dock, the outbound dock and the
+    pallet aisles
+  planted: hit
+
+- golden_id: h23
+  query: At what tread depth are tyres replaced?
+  doc_id: fleet-maintenance
+  evidence: Tyres are replaced at three millimetres of tread
+  planted: hit
+
+- golden_id: h24
+  query: How often is a reefer unit serviced?
+  doc_id: fleet-maintenance
+  evidence: A reefer unit is serviced every one thousand running hours
+  planted: hit
+
+- golden_id: h25
+  query: What temperature are frozen loads held at?
+  doc_id: cold-chain
+  evidence: Frozen loads are held at minus 18 degrees or below.
+  planted: hit
+
+- golden_id: h26
+  query: How long after rotation is an old client secret revoked?
+  doc_id: api-authentication
+  evidence: the old secret is revoked automatically after fourteen days
+  planted: hit
+
+- golden_id: h27
+  query: For how long are webhook deliveries retried?
+  doc_id: api-rate-limits
+  evidence: is retried with exponential back off for up to twenty four hours
+  planted: hit
+
+- golden_id: h28
+  query: When is a post incident review published?
+  doc_id: status-page-runbook
+  evidence: >-
+    A post incident review is published for every severity one within five business
+    days.
+  planted: hit
+
+- golden_id: h29
+  query: Can a support agent lower the severity of an incident?
+  doc_id: escalation-matrix
+  evidence: An agent may raise the severity of an incident but may not lower it.
+  planted: hit
+
+- golden_id: h30
+  query: Which service tier do returns travel on?
+  doc_id: returns-policy
+  evidence: >-
+    Returns travel on the Standard Ground tier regardless of the tier used for the
+    outbound shipment.
+  planted: hit
+
+- golden_id: h32
+  query: How many days can an employee work from another country without extra approval?
+  doc_id: remote-work-policy
+  evidence: >-
+    Employees may work from another country for up to thirty calendar days per year
+    without approval beyond their manager
+  planted: hit
+
+- golden_id: h33
+  query: How long are proof of delivery photographs retained?
+  doc_id: data-retention
+  evidence: Proof of delivery signatures and photographs are retained for two years.
+  planted: hit
+
+- golden_id: h34
+  query: Is alcohol reimbursed on an expense claim?
+  doc_id: expense-reimbursement
+  evidence: Alcohol is not reimbursed.
+  planted: hit
+
+- golden_id: h35
+  query: What emergency contact does a dangerous goods declaration need?
+  doc_id: hazmat-handling
+  evidence: an emergency contact number staffed twenty four hours a day
+  planted: hit
+
+- golden_id: h36
+  query: When are fuel surcharges recalculated?
+  doc_id: shipping-service-tiers
+  evidence: >-
+    Fuel surcharges are recalculated on the first business day of each month against
+    the published diesel index.
+  planted: hit
+
+- golden_id: h37
+  query: Which incident code is used when no other code fits?
+  doc_id: incident-codes
+  evidence: >-
+    the incident is raised as NW-4400 and the triage team assigns a real code within
+    one hour
+  planted: hit
+
+# =============================================================================
+# RANK CUTOFF — the gold chunk is ranked, just below the production k.
+# =============================================================================
+
+- golden_id: rc01
+  query: How often does dangerous goods training expire?
+  doc_id: hazmat-handling
+  evidence: Training expires after twenty four months.
+  planted: rank_cutoff
+
+- golden_id: rc02
+  query: What is the severity one acknowledgement window?
+  doc_id: escalation-matrix
+  evidence: The owning team must acknowledge within fifteen minutes at any hour.
+  planted: rank_cutoff
+
+- golden_id: rc03
+  query: How much notice is needed to request a parental leave block?
+  doc_id: parental-leave
+  evidence: Blocks are requested through the people portal with eight weeks notice
+  planted: rank_cutoff
+
+# =============================================================================
+# VOCABULARY MISMATCH — a rare exact term the dense vector dilutes away.
+#
+# The query names a jargon term that occurs in exactly one place in the corpus
+# and surrounds it with words that are common everywhere else. Mean-pooled
+# embeddings dilute the one rare token among the chunk's other thirty; BM25's
+# IDF weighting makes it the dominant signal.
+# =============================================================================
+
+- golden_id: vm01
+  query: What does the depot team tell a customer whose shipment is a rollover?
+  doc_id: glossary
+  evidence: Rollover — a load left behind when a wave reaches capacity.
+  planted: vocabulary_mismatch
+
+- golden_id: vm02
+  query: Why would the depot team charge a customer for a deadhead on their shipment?
+  doc_id: glossary
+  evidence: Deadhead — a linehaul leg run with no freight aboard.
+  planted: vocabulary_mismatch
+
+# =============================================================================
+# CHUNK BOUNDARY — the evidence span straddles a chunk edge under the
+# production chunker, so no single chunk can answer the query.
+# =============================================================================
+
+- golden_id: cb01
+  query: What is the fuel surcharge for Priority Air?
+  doc_id: shipping-service-tiers
+  evidence: >-
+    Service tier | Order cutoff (local) | Transit days | Fuel surcharge | Weekend
+    pickup Standard Ground | 18:00 | 4 to 6 | 4.5 percent | no Economy Ground |
+    16:00 | 6 to 9 | 3.0 percent | no Regional Express | 19:00 | 2 to 4 | 7.0
+    percent | yes Freight Consolidated | 14:00 | 8 to 14 | 2.0 percent | no Same Day
+    Courier | 11:00 | same day | 22.0 percent | yes Priority Air | 20:00 | 2 to 3 |
+    9.5 percent | yes
+  planted: chunk_boundary
+
+- golden_id: cb02
+  query: Which packing groups are permitted for Class 8 corrosive substances?
+  doc_id: hazmat-handling
+  evidence: >-
+    Class | Description | Packing group permitted | Depot certification required
+    Class 2.1 | Flammable gas | not applicable | full dangerous goods depot Class 3
+    | Flammable liquid | I, II and III | full dangerous goods depot Class 6.1 |
+    Toxic substance | I, II and III | full dangerous goods depot Class 9 |
+    Miscellaneous, including lithium batteries | II and III only | limited quantity
+    depot Class 8 | Corrosive substance | II and III only | limited quantity depot
+  planted: chunk_boundary
+
+# =============================================================================
+# METADATA FILTER — the answer lives in a document the production filter
+# (status == current) excludes outright.
+# =============================================================================
+
+- golden_id: mf01
+  query: After how many days from the delivery date is a refund request declined?
+  doc_id: refund-processing
+  evidence: >-
+    A refund request older than ninety days from the delivery date is declined
+    automatically.
+  planted: metadata_filter
+
+- golden_id: mf02
+  query: Within how many days of the invoice date must a dispute be raised?
+  doc_id: invoice-disputes
+  evidence: A dispute must be raised within thirty days of the invoice date.
+  planted: metadata_filter
+
+- golden_id: mf03
+  query: How are chargeable weight disputes resolved?
+  doc_id: invoice-disputes
+  evidence: >-
+    Chargeable weight disputes are resolved against the dimensioning scanner record,
+    which stores the measured dimensions and a photograph of the parcel on the belt.
+  planted: metadata_filter
+
+- golden_id: mf04
+  query: How is a partial refund calculated?
+  doc_id: refund-processing
+  evidence: >-
+    The refund is calculated pro rata on the chargeable weight of the affected
+    packages, not on the number of packages
+  planted: metadata_filter
+
+# =============================================================================
+# EMBEDDING BLIND SPOT — no ablation recovers it.
+# =============================================================================
+
+- golden_id: bs01
+  query: What temperature range applies to vaccine shipments?
+  doc_id: cold-chain
+  evidence: >-
+    Biologic loads travel in reefer units held between 2 and 8 degrees celsius for
+    the whole journey
+  planted: embedding_blind_spot
+
+- golden_id: bs02
+  query: How often does a truck need a scheduled service?
+  doc_id: fleet-maintenance
+  evidence: >-
+    Rigid vehicles are serviced every twenty thousand kilometres or every six
+    months, whichever comes first.
+  planted: embedding_blind_spot
+
+# =============================================================================
+# GENERATION FAILURES — retrieval succeeded; the answer did not.
+# =============================================================================
+
+- golden_id: gf01
+  query: How quickly is an approved expense claim paid?
+  doc_id: expense-reimbursement
+  evidence: Approved claims are paid with the next payroll run.
+  planted: generation_failure
+  answer: Approved expense claims are paid within 48 hours by same day bank transfer.
+
+- golden_id: gf02
+  query: What is the burst allowance over a ten second interval?
+  doc_id: api-rate-limits
+  evidence: Burst allowance is twice the per minute ceiling over any ten second interval.
+  planted: generation_failure
+  answer: The burst allowance is five times the per minute ceiling over a sixty second window.

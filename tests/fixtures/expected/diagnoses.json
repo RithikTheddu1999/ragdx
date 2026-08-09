@@ -1,0 +1,274 @@
+{
+  "_meta": {
+    "description": "Ground-truth diagnosis for every fixture golden. Authored from planted intent and confirmed by primitive retrieval measurements; never produced by running the classifier. See tests/fixtures/README.md.",
+    "corpus_hash": "d98883363eb512004bedbb45c055b1ec947933eda9f5fd384eec523fe786a0b9",
+    "n_documents": 21,
+    "n_goldens": 51,
+    "counts": {
+      "chunk_boundary": 2,
+      "embedding_blind_spot": 2,
+      "generation_ungrounded": 2,
+      "hit": 36,
+      "metadata_filter": 4,
+      "rank_cutoff": 3,
+      "vocabulary_mismatch": 2
+    }
+  },
+  "diagnoses": [
+    {
+      "golden_id": "bs01",
+      "outcome": "retrieval_failure",
+      "cause": "embedding_blind_spot"
+    },
+    {
+      "golden_id": "bs02",
+      "outcome": "retrieval_failure",
+      "cause": "embedding_blind_spot"
+    },
+    {
+      "golden_id": "cb01",
+      "outcome": "retrieval_failure",
+      "cause": "chunk_boundary"
+    },
+    {
+      "golden_id": "cb02",
+      "outcome": "retrieval_failure",
+      "cause": "chunk_boundary"
+    },
+    {
+      "golden_id": "gf01",
+      "outcome": "generation_failure",
+      "cause": "generation_ungrounded"
+    },
+    {
+      "golden_id": "gf02",
+      "outcome": "generation_failure",
+      "cause": "generation_ungrounded"
+    },
+    {
+      "golden_id": "h01",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h02",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h03",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h04",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h05",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h06",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h07",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h08",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h09",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h10",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h11",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h12",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h13",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h14",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h15",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h16",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h17",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h18",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h19",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h20",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h21",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h22",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h23",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h24",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h25",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h26",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h27",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h28",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h29",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h30",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h32",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h33",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h34",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h35",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h36",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "h37",
+      "outcome": "hit",
+      "cause": null
+    },
+    {
+      "golden_id": "mf01",
+      "outcome": "retrieval_failure",
+      "cause": "metadata_filter"
+    },
+    {
+      "golden_id": "mf02",
+      "outcome": "retrieval_failure",
+      "cause": "metadata_filter"
+    },
+    {
+      "golden_id": "mf03",
+      "outcome": "retrieval_failure",
+      "cause": "metadata_filter"
+    },
+    {
+      "golden_id": "mf04",
+      "outcome": "retrieval_failure",
+      "cause": "metadata_filter"
+    },
+    {
+      "golden_id": "rc01",
+      "outcome": "retrieval_failure",
+      "cause": "rank_cutoff"
+    },
+    {
+      "golden_id": "rc02",
+      "outcome": "retrieval_failure",
+      "cause": "rank_cutoff"
+    },
+    {
+      "golden_id": "rc03",
+      "outcome": "retrieval_failure",
+      "cause": "rank_cutoff"
+    },
+    {
+      "golden_id": "vm01",
+      "outcome": "retrieval_failure",
+      "cause": "vocabulary_mismatch"
+    },
+    {
+      "golden_id": "vm02",
+      "outcome": "retrieval_failure",
+      "cause": "vocabulary_mismatch"
+    }
+  ]
+}
