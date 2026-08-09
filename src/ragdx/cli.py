@@ -6,9 +6,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
+from pydantic import ValidationError
 
 from ragdx.cache import ContentCache
 from ragdx.chunking import FixedSizeChunker
+from ragdx.config import load_config
 from ragdx.corpus import corpus_hash, load_corpus
 from ragdx.goldens import (
     GoldenBatch,
@@ -21,6 +23,9 @@ from ragdx.goldens import (
 )
 from ragdx.judge.base import CachedJudge
 from ragdx.judge.loader import JudgeNotFoundError, load_judge
+from ragdx.plugins import PluginNotFoundError
+from ragdx.report.render import CAUSE_LABELS, RECOVERABLE_BY, write_report
+from ragdx.runner import run as ragdx_run
 
 app = typer.Typer(
     name="ragdx",
@@ -63,11 +68,58 @@ def _write(directory: Path, batch: GoldenBatch, corpus_digest: str, generator: s
 
 @app.command()
 def run(
-    config: str = typer.Option(..., "--config", "-c", help="Path to ragdx.yaml."),
-    out: str = typer.Option("./ragdx-report", "--out", "-o", help="Output directory."),
+    config: Path = typer.Option(..., "--config", "-c", help="Path to ragdx.yaml."),
+    out: Path = typer.Option(Path("./ragdx-report"), "--out", "-o", help="Output directory."),
 ) -> None:
     """Evaluate a golden set and write report.html + report.json."""
-    _not_implemented("run")
+    try:
+        settings = load_config(config)
+    except (OSError, ValueError, ValidationError) as exc:
+        typer.secho(f"could not read {config}: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    try:
+        result = ragdx_run(settings)
+    except (OSError, ValueError, PluginNotFoundError) as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+
+    report = result.report
+    for warning in report.warnings:
+        typer.secho(warning, fg=typer.colors.YELLOW, err=True)
+
+    typer.echo(
+        f"{report.summary.n_goldens} queries evaluated · "
+        f"{report.summary.n_retrieval_failures} retrieval failures · "
+        f"recall@{settings.retrieval.k} {report.summary.recall_at_k:.0%}"
+    )
+    if report.clusters:
+        typer.echo("")
+        width = max(
+            len("ROOT CAUSE"),
+            *(len(CAUSE_LABELS.get(c.cause.value, c.cause.value)) for c in report.clusters),
+        )
+        typer.echo(f"  {'ROOT CAUSE':<{width}}{'FAILURES':>10}   RECOVERABLE BY")
+        typer.echo("  " + "─" * (width + 45))
+        for cluster in report.clusters:
+            label = CAUSE_LABELS.get(cluster.cause.value, cluster.cause.value)
+            fix = RECOVERABLE_BY.get(cluster.cause.value, "—")
+            typer.echo(f"  {label:<{width}}{cluster.count:>10}   {fix}")
+    if report.recommendations:
+        best = report.recommendations[0]
+        total = report.summary.n_retrieval_failures + report.summary.n_generation_failures
+        typer.echo("")
+        typer.echo(
+            f"  Top single fix: {best.fix} → est. recovery "
+            f"{best.recovers}/{total} ({best.share_of_failures:.0%})"
+        )
+
+    html_path, json_path = write_report(
+        report, out, generated_at=datetime.now(UTC).isoformat(timespec="seconds")
+    )
+    typer.echo("")
+    typer.echo(f"  wrote {html_path}")
+    typer.echo(f"        {json_path}")
 
 
 @goldens_app.command("build")

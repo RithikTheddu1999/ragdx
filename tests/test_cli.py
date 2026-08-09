@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 from ragdx.cli import app
@@ -21,15 +20,42 @@ def test_help_lists_subcommands() -> None:
         assert name in result.stdout
 
 
-@pytest.mark.parametrize(
-    "argv",
-    [
-        ["run", "--config", "ragdx.yaml"],
-        ["ci", "--config", "ragdx.yaml", "--baseline", ".ragdx/baseline.json"],
-    ],
-)
-def test_unimplemented_commands_exit_one(argv: list[str]) -> None:
+def test_ci_is_still_a_stub() -> None:
+    """Phase 2. It must not silently exit 0 before it exists."""
+    argv = ["ci", "--config", "ragdx.yaml", "--baseline", ".ragdx/baseline.json"]
     assert runner.invoke(app, argv).exit_code == 1
+
+
+class TestRun:
+    def _inputs(self, tmp_path: Path) -> Path:
+        from test_report import _write_run_inputs
+
+        return _write_run_inputs(tmp_path)
+
+    def test_produces_a_report_and_prints_the_top_fix(self, tmp_path: Path) -> None:
+        result = runner.invoke(
+            app,
+            [
+                "run",
+                "--config", str(self._inputs(tmp_path)),
+                "--out", str(tmp_path / "out"),
+            ],
+        )  # fmt: skip
+        assert result.exit_code == 0, result.stdout
+        assert "51 queries evaluated" in result.stdout
+        assert "ROOT CAUSE" in result.stdout
+        assert "Top single fix" in result.stdout
+        assert (tmp_path / "out" / "report.html").is_file()
+        assert (tmp_path / "out" / "report.json").is_file()
+
+    def test_missing_config_exits_two(self, tmp_path: Path) -> None:
+        result = runner.invoke(app, ["run", "--config", str(tmp_path / "nope.yaml")])
+        assert result.exit_code == 2
+
+    def test_malformed_config_exits_two(self, tmp_path: Path) -> None:
+        bad = tmp_path / "ragdx.yaml"
+        bad.write_text("corpus: ./docs\n", encoding="utf-8")  # no goldens
+        assert runner.invoke(app, ["run", "--config", str(bad)]).exit_code == 2
 
 
 class TestGoldensBuild:

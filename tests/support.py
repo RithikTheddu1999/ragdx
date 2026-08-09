@@ -232,3 +232,8 @@ class ScriptedFaithfulnessJudge:
 def fixture_answers() -> dict[str, str]:
     """Recorded answers for the goldens that have them."""
     return {f.golden.golden_id: f.answer for f in load_fixture_goldens() if f.answer}
+
+
+def scripted_faithfulness_judge() -> ScriptedFaithfulnessJudge:
+    """Factory used by config/CLI tests via `judge: support:scripted_faithfulness_judge`."""
+    return ScriptedFaithfulnessJudge()

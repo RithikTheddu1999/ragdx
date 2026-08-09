@@ -24,7 +24,7 @@ import hashlib
 import math
 from collections import Counter
 from collections.abc import Sequence
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 import numpy as np
 import numpy.typing as npt
@@ -49,6 +49,7 @@ DEFAULT_SYNONYMS: tuple[tuple[str, ...], ...] = (
 )
 
 
+@runtime_checkable
 class Embedder(Protocol):
     """Turns text into L2-normalized vectors."""
 
@@ -126,3 +127,10 @@ class StubEmbedder:
             if norm > 0.0:
                 out[row] = acc / norm
         return out
+
+
+def load_embedder(spec: str = "stub") -> Embedder:
+    """Resolve ``module:attribute`` (or ``stub``) into an Embedder."""
+    from ragdx.plugins import load_plugin
+
+    return load_plugin(spec, Embedder, "embedder", StubEmbedder())

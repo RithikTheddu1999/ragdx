@@ -1,0 +1,47 @@
+# ragdx configuration. Paths resolve relative to this file.
+#
+#   ragdx run --config ragdx.yaml --out ./ragdx-report
+
+corpus: ./docs
+goldens: ./goldens # a versioned golden-set directory, or a .jsonl of Goldens
+
+# Optional. JSONL of {"golden_id": "...", "answer": "..."}. Supply it and the
+# generation plane is diagnosed too: queries where the gold chunk WAS retrieved
+# but the answer is not grounded in it are reported as generation failures
+# rather than blamed on the retriever.
+# answers: ./answers.jsonl
+
+# The retrieval setup being diagnosed. These are the values ragdx holds fixed
+# while it varies one thing at a time.
+retrieval:
+  plane: dense # dense | lexical | hybrid
+  k: 5
+  filters:
+    status: current
+
+chunking:
+  size: 240 # characters
+  overlap: 60
+
+ablations:
+  # Depth the rank-cutoff ablation retrieves to — roughly what a reranker would
+  # be fed. Keep it well below your index size: if it approaches the number of
+  # chunks, "raise k" stops being a fix anyone can ship and ragdx skips it.
+  rank_cutoff_k: 100
+  alternate_chunking:
+    size: 960
+    overlap: 480
+
+# ragdx bundles no model client and no embedding model. Point these at your own
+# with "module:attribute" — the attribute is the object itself, or a
+# zero-argument callable returning one. "stub" is the offline default.
+#
+#   judge: my_project.judges:anthropic_judge
+#   embedder: my_project.embeddings:openai_embedder
+judge: stub
+embedder: stub
+
+# Fraction of a golden's evidence span a single chunk must cover to count as
+# retrieved. Below 1.0 by default because an answer split across a chunk
+# boundary is a real failure, not a partial success.
+coverage_threshold: 0.75

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ragdx — retrieval diagnosis</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1d21;
+    --muted: #5c6470;
+    --line: #e3e6ea;
+    --panel: #f7f8fa;
+    --accent: #1d4ed8;
+    --warn: #92400e;
+    --warn-bg: #fef3c7;
+    --ok: #047857;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171a; --fg: #e8eaed; --muted: #9aa4b2; --line: #2a2f36;
+      --panel: #1c2025; --accent: #7ea2ff; --warn: #fcd34d; --warn-bg: #3b2f0b;
+      --ok: #34d399;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2.5rem 1.25rem 4rem;
+    background: var(--bg); color: var(--fg);
+    font: 15px/1.6 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 60rem; margin: 0 auto; }
+  h1 { font-size: 1.6rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
+  h2 { font-size: 1.15rem; margin: 2.75rem 0 .75rem; letter-spacing: -.01em; }
+  h3 { font-size: 1rem; margin: 0 0 .35rem; }
+  .sub { color: var(--muted); margin: 0 0 2rem; }
+  .stats { display: flex; flex-wrap: wrap; gap: .5rem 2.25rem; margin: 0 0 .5rem; padding: 0; list-style: none; }
+  .stats li { display: flex; flex-direction: column; }
+  .stats .n { font-size: 1.5rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .stats .l { color: var(--muted); font-size: .82rem; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  th, td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .topfix {
+    margin: 1.25rem 0 0; padding: .9rem 1.1rem; border-left: 3px solid var(--accent);
+    background: var(--panel); border-radius: 0 6px 6px 0;
+  }
+  .topfix strong { color: var(--accent); }
+  .warn { background: var(--warn-bg); color: var(--warn); padding: .75rem 1rem; border-radius: 6px; margin-bottom: 1.5rem; }
+  .case { border: 1px solid var(--line); border-radius: 8px; padding: .9rem 1.1rem; margin: .75rem 0; background: var(--panel); }
+  .case .q { font-weight: 600; }
+  .case dl { margin: .6rem 0 0; display: grid; grid-template-columns: minmax(6.5rem, max-content) 1fr; gap: .3rem .9rem; }
+  .case dt { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+  .case dd { margin: 0; }
+  .quote { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .84rem; }
+  .miss { color: var(--muted); }
+  .pill { display: inline-block; font-size: .75rem; padding: .1rem .5rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
+  footer { margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .82rem; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Retrieval diagnosis</h1>
+<p class="sub">
+  {{ report.summary.n_goldens }} queries evaluated ·
+  {{ report.summary.n_retrieval_failures }} retrieval failures ·
+  {{ report.n_documents }} documents, {{ report.n_chunks }} chunks
+</p>
+
+{% for warning in report.warnings %}
+<p class="warn">{{ warning }}</p>
+{% endfor %}
+
+<ul class="stats">
+  <li><span class="n">{{ '%.0f'|format(report.summary.recall_at_k * 100) }}%</span><span class="l">recall@k</span></li>
+  <li><span class="n">{{ report.summary.n_hits }}</span><span class="l">hits</span></li>
+  <li><span class="n">{{ report.summary.n_retrieval_failures }}</span><span class="l">retrieval failures</span></li>
+  <li><span class="n">{{ report.summary.n_generation_failures }}</span><span class="l">generation failures</span></li>
+  <li><span class="n">{{ report.summary.n_unclassified }}</span><span class="l">unclassified</span></li>
+</ul>
+
+<h2>Root causes</h2>
+<div class="scroll">
+<table>
+  <thead>
+    <tr>
+      <th>Root cause</th>
+      <th class="num">Failures</th>
+      <th>Recoverable by</th>
+      <th class="num">Confidence</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for cluster in report.clusters %}
+    <tr>
+      <td><a href="#cause-{{ cluster.cause.value }}">{{ cause_labels.get(cluster.cause.value, cluster.cause.value) }}</a></td>
+      <td class="num">{{ cluster.count }}</td>
+      <td>{{ recoverable_by.get(cluster.cause.value, '—') }}</td>
+      <td class="num">{{ '%.2f'|format(cluster.mean_confidence) }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4">No failures. Every golden was retrieved within k.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if top_fix %}
+<p class="topfix">
+  <strong>Top single fix:</strong> {{ top_fix.fix }} →
+  est. recovery {{ top_fix.recovers }}/{{ report.summary.n_retrieval_failures + report.summary.n_generation_failures }}
+  ({{ '%.0f'|format(top_fix.share_of_failures * 100) }}%).
+  {{ top_fix.detail }}
+</p>
+{% endif %}
+
+{% if report.recommendations %}
+<h2>Ranked fixes</h2>
+<p class="sub">
+  Ranked by failures recovered ÷ implementation cost. Every recovery count is a
+  counterfactual that actually ran: retrieval was re-executed under the change
+  and returned the gold chunk.
+</p>
+<div class="scroll">
+<table>
+  <thead>
+    <tr>
+      <th>Fix</th>
+      <th class="num">Recovers</th>
+      <th class="num">Share</th>
+      <th class="num">Cost</th>
+      <th>Why</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for rec in report.recommendations %}
+    <tr>
+      <td>{{ rec.fix }}</td>
+      <td class="num">{{ rec.recovers }}</td>
+      <td class="num">{{ '%.0f'|format(rec.share_of_failures * 100) }}%</td>
+      <td class="num">{{ rec.cost }}</td>
+      <td>{{ rec.detail }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+
+{% for cluster in report.clusters %}
+<h2 id="cause-{{ cluster.cause.value }}">
+  {{ cause_labels.get(cluster.cause.value, cluster.cause.value) }}
+  <span class="pill">{{ cluster.count }} {{ 'failure' if cluster.count == 1 else 'failures' }}</span>
+</h2>
+
+{% if cluster.subgroups %}
+<p class="sub">
+  Offending terms:
+  {% for term, count in cluster.subgroups.items() %}<code>{{ term }}</code> ({{ count }}){% if not loop.last %}, {% endif %}{% endfor %}
+</p>
+{% endif %}
+
+{% for example in cluster.examples %}
+<div class="case">
+  <p class="q">{{ example.query }}</p>
+  <dl>
+    <dt>Diagnosis</dt><dd>{{ example.evidence }}</dd>
+    <dt>Expected</dt><dd class="quote">{{ example.expected_text }}</dd>
+    {% if example.retrieved_preview %}
+    <dt>Retrieved</dt>
+    <dd>
+      {% for text in example.retrieved_preview %}
+      <div class="quote miss">{{ loop.index0 }}. {{ text }}</div>
+      {% endfor %}
+    </dd>
+    {% else %}
+    <dt>Retrieved</dt><dd class="miss">nothing was returned</dd>
+    {% endif %}
+    {% if example.subgroup %}
+    <dt>Term</dt><dd><code>{{ example.subgroup }}</code></dd>
+    {% endif %}
+    <dt>Confidence</dt><dd>{{ '%.2f'|format(example.confidence) }}</dd>
+  </dl>
+</div>
+{% endfor %}
+{% if cluster.count > cluster.examples|length %}
+<p class="sub">…and {{ cluster.count - cluster.examples|length }} more with the same cause.</p>
+{% endif %}
+{% endfor %}
+
+<footer>
+  <p>
+    Generated by ragdx{% if generated_at %} at {{ generated_at }}{% endif %}.
+    Causes are assigned by counterfactual retrieval, not by asking a model why
+    retrieval failed. A cause is only reported when re-running retrieval under
+    that one change actually recovered the gold chunk; where nothing did, the
+    diagnosis is <code>unclassified</code> rather than a guess.
+  </p>
+  <p>
+    Retrieval configuration:
+    <code>{{ report.config_snapshot.get('plane', 'dense') }}</code>,
+    k=<code>{{ report.config_snapshot.get('k', '?') }}</code>,
+    chunking <code>{{ report.config_snapshot.get('chunking', '?') }}</code>{% if report.config_snapshot.get('filters') %},
+    filters <code>{{ report.config_snapshot.get('filters') }}</code>{% endif %}.
+    Corpus <code>{{ report.corpus_hash[:12] }}</code>.
+  </p>
+</footer>
+
+</main>
+</body>
+</html>
