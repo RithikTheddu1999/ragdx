@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -10,8 +11,10 @@ import yaml
 
 from ragdx.chunking import FixedSizeChunker
 from ragdx.corpus import Document, load_corpus
+from ragdx.judge.base import JudgeVerdict
 from ragdx.schema import Chunk, Golden
 from ragdx.spans import find_span
+from ragdx.text import tokenize
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 CORPUS_DIR = FIXTURE_DIR / "corpus"
@@ -72,3 +75,57 @@ def load_fixture_goldens(docs: list[Document] | None = None) -> list[FixtureGold
             )
         )
     return out
+
+
+class ScriptedJudge:
+    """A judge whose answers are derived from the text, not from a model.
+
+    It plants a rare marker token from the passage into the question it writes,
+    then answers "answerable" exactly when that marker appears in the context it
+    is shown. That gives synthesis a deterministic, offline judge whose verdicts
+    are actually *about* the text — so the verification step is genuinely
+    exercised rather than rubber-stamped.
+    """
+
+    name = "scripted-judge-v1"
+
+    def __init__(self, abstain: bool = False, always_answerable: bool = False) -> None:
+        self.abstain = abstain
+        self.always_answerable = always_answerable
+
+    @staticmethod
+    def _marker(text: str) -> str:
+        tokens = [t for t in tokenize(text) if len(t) > 3]
+        return max(tokens, key=lambda t: (len(t), t)) if tokens else "passage"
+
+    def complete(self, prompt: str, *, max_tokens: int = 512) -> str:
+        passage = prompt.split("PASSAGE:\n", 1)[-1].strip()
+        sentence = passage.split(". ", 1)[0].strip()
+        if not sentence:
+            return ""
+        marker = self._marker(sentence)
+        return json.dumps(
+            {
+                "question": f"What does the handbook say about {marker}?",
+                "evidence": sentence,
+                "answer": sentence,
+            }
+        )
+
+    def judge(self, prompt: str, labels: tuple[str, ...]) -> JudgeVerdict:
+        if self.abstain:
+            return JudgeVerdict(label=labels[0], confidence=0.0, abstained=True)
+        question = prompt.split("QUESTION:\n", 1)[-1].split("\n\nCONTEXT:\n", 1)[0]
+        context = prompt.split("CONTEXT:\n", 1)[-1]
+        marker = question.rstrip("?").split()[-1].lower()
+        answerable = self.always_answerable or marker in context.lower()
+        return JudgeVerdict(
+            label="answerable" if answerable else "not_answerable",
+            confidence=0.9 if answerable else 0.8,
+            rationale=f"marker {marker!r} {'in' if answerable else 'not in'} context",
+        )
+
+
+def scripted_judge() -> ScriptedJudge:
+    """Factory used by the CLI tests via `--judge support:scripted_judge`."""
+    return ScriptedJudge()

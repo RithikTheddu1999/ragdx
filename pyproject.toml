@@ -45,6 +45,10 @@ src = ["src", "tests"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
 
+[tool.ruff.lint.per-file-ignores]
+# typer.Option() in a default is how typer declares CLI options.
+"src/ragdx/cli.py" = ["B008"]
+
 [tool.mypy]
 # No `python_version` pin: mypy targets the interpreter in use. Pinning to 3.11
 # breaks against numpy's stubs, which use 3.12+ `type` statements.
