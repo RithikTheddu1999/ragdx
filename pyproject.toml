@@ -62,10 +62,18 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q --strict-markers"
+# Integration tests against real frameworks are excluded by default; the suite
+# must pass offline with no API keys. Run them with `pytest -m network`.
+addopts = "-q --strict-markers -m 'not network'"
 markers = [
     "network: integration tests that need network access (deselected by default)",
 ]
 
 [tool.coverage.run]
 source = ["src/ragdx"]
+
+[[tool.mypy.overrides]]
+# Optional extras. Only the `network`-marked integration tests import them, and
+# those are deselected unless the extra is installed.
+module = ["langchain_core.*", "llama_index.*"]
+ignore_missing_imports = true

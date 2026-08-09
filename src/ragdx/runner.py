@@ -13,6 +13,11 @@ from pathlib import Path
 
 from ragdx.ablations.base import DiagnosisTarget
 from ragdx.adapters.base import Retriever
+from ragdx.adapters.trace_file import (
+    TraceReplayRetriever,
+    answers_by_golden,
+    load_traces,
+)
 from ragdx.chunking import FixedSizeChunker
 from ragdx.config import RagdxConfig
 from ragdx.corpus import Document, corpus_hash, load_corpus
@@ -75,12 +80,24 @@ def build_retriever(config: RagdxConfig, chunks: list[Chunk]) -> Retriever:
     return DenseRetriever(chunks, embedder)
 
 
-def build_target(config: RagdxConfig, docs: list[Document], chunks: list[Chunk]) -> DiagnosisTarget:
+def build_target(
+    config: RagdxConfig,
+    docs: list[Document],
+    chunks: list[Chunk],
+    replay: TraceReplayRetriever | None = None,
+) -> DiagnosisTarget:
+    """The production setup under diagnosis.
+
+    ``chunks`` and ``docs`` are supplied even in replay mode: the corpus-only
+    counterfactuals (BM25, a dense index, re-chunking) ask what a *different
+    retrieval strategy over your documents* would have found, which needs no
+    access to the retriever that produced the traces.
+    """
     return DiagnosisTarget(
-        retriever=build_retriever(config, chunks),
+        retriever=replay if replay is not None else build_retriever(config, chunks),
         k=config.retrieval.k,
         filters=dict(config.retrieval.filters) or None,
-        plane=config.retrieval.plane,
+        plane=replay.plane if replay is not None else config.retrieval.plane,
         chunks=chunks,
         docs=docs,
         embedder=load_embedder(config.embedder),
@@ -91,6 +108,7 @@ def build_target(config: RagdxConfig, docs: list[Document], chunks: list[Chunk])
 def _config_snapshot(config: RagdxConfig) -> dict[str, object]:
     return {
         "plane": config.retrieval.plane,
+        "source": "traces" if config.traces else "built-in index",
         "k": config.retrieval.k,
         "filters": dict(config.retrieval.filters),
         "chunking": f"{config.chunking.size}/{config.chunking.overlap}",
@@ -115,6 +133,20 @@ def run(config: RagdxConfig) -> RunResult:
     answers = load_answers(config.answers)
 
     warnings: list[str] = []
+    replay: TraceReplayRetriever | None = None
+    if config.traces is not None:
+        replay = TraceReplayRetriever(load_traces(config.traces))
+        # Recorded answers fill in for any golden the answers file did not cover.
+        recorded = answers_by_golden(replay, {g.golden_id: g.query for g in goldens})
+        answers = {**recorded, **answers}
+        unseen = [g.golden_id for g in goldens if not replay.retrieve(g.query, 1)]
+        if unseen:
+            warnings.append(
+                f"{len(unseen)} of {len(goldens)} goldens have no matching trace "
+                f"(matched on exact query text) and will be scored as retrieving "
+                f"nothing: {', '.join(unseen[:5])}"
+                f"{'…' if len(unseen) > 5 else ''}"
+            )
     digest = corpus_hash(docs)
     if built_against and built_against != digest:
         warnings.append(
@@ -124,7 +156,7 @@ def run(config: RagdxConfig) -> RunResult:
             f"set before trusting these numbers."
         )
 
-    target = build_target(config, docs, chunks)
+    target = build_target(config, docs, chunks, replay)
     judge = load_judge(config.judge) if answers else None
     classifier = Classifier(
         target,

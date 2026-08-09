@@ -16,6 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ragdx.ablations.base import Ablation, DiagnosisTarget
+from ragdx.ablations.filters import excluded_by_filters
 from ragdx.ablations.registry import first_recovery, run_battery
 from ragdx.judge.base import Judge
 from ragdx.judge.faithfulness import UNGROUNDED, assess_faithfulness
@@ -60,6 +61,9 @@ class ClassifierConfig:
     #: How sure the faithfulness judge must be before a retrieval hit is
     #: downgraded to a generation failure. Below this, the hit stands.
     faithfulness_min_confidence: float = 0.5
+    #: Confidence for a filter exclusion proven from metadata rather than by
+    #: re-running retrieval with the filter off.
+    filter_exclusion_confidence: float = 0.7
 
 
 @dataclass(frozen=True)
@@ -180,6 +184,27 @@ class Classifier:
 
         if not target.satisfiable(golden):
             return self._split_span(golden, results)
+
+        # The filter ablation could not be re-run — a recording, typically —
+        # but the gold document's metadata still settles it: if nothing that
+        # covers the evidence span passes the filter, the retriever was never
+        # allowed to return it. Deterministic, but the ranking is unproven, so
+        # the confidence is short of certain.
+        filters_untested = any(r.ablation_name == "filters_removed" and r.skipped for r in results)
+        if filters_untested and excluded_by_filters(target, golden):
+            keys = ", ".join(sorted(target.filters or {}))
+            return Diagnosis(
+                golden_id=golden.golden_id,
+                outcome="retrieval_failure",
+                cause=FailureCause.METADATA_FILTER,
+                confidence=cfg.filter_exclusion_confidence,
+                ablation_results=results,
+                evidence=(
+                    f"every chunk covering the evidence span is excluded by the "
+                    f"filter on {keys}, so retrieval could never return it; ragdx "
+                    f"could not re-run the retriever to confirm it would then rank"
+                ),
+            )
 
         profile = self._score_profile(golden)
         if profile is None:

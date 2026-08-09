@@ -8,10 +8,28 @@ was fine and the filter was wrong.
 from __future__ import annotations
 
 from ragdx.ablations.base import Ablation, DiagnosisTarget, skipped
-from ragdx.matching import gold_rank
+from ragdx.adapters.base import Replayed
+from ragdx.index import matches_filters
+from ragdx.matching import chunk_satisfies, gold_rank
 from ragdx.schema import AblationResult, Golden
 
 NAME = "filters_removed"
+
+
+def excluded_by_filters(target: DiagnosisTarget, golden: Golden) -> bool:
+    """True when the production filter makes the gold chunk unreturnable.
+
+    Pure arithmetic over metadata: if no chunk that covers the evidence span
+    satisfies the filter, the retriever was never permitted to return one, and
+    no amount of reranking or re-embedding changes that. Used when the
+    production retriever cannot be re-run.
+    """
+    if not target.filters or not target.chunks:
+        return False
+    covering = [
+        c for c in target.chunks if chunk_satisfies(c, golden, target.config.coverage_threshold)
+    ]
+    return bool(covering) and not any(matches_filters(c, target.filters) for c in covering)
 
 
 class FiltersRemoved(Ablation):
@@ -28,11 +46,25 @@ class FiltersRemoved(Ablation):
     def applicable(self, target: DiagnosisTarget, golden: Golden) -> bool:
         # Nothing to remove, and nothing a filter change could fix if the
         # chunker cannot produce a satisfying chunk in the first place.
-        return bool(target.filters) and target.satisfiable(golden)
+        return (
+            bool(target.filters)
+            and not isinstance(target.retriever, Replayed)
+            and target.satisfiable(golden)
+        )
 
     def run(self, target: DiagnosisTarget, golden: Golden) -> AblationResult:
         if not target.filters:
             return skipped(NAME, "production retrieval applies no filters")
+        if isinstance(target.retriever, Replayed):
+            # The classifier can still reach `metadata_filter` from the gold
+            # document's metadata alone — see excluded_by_filters() — but that
+            # is an inference, not a retrieval that was re-run, and it is not
+            # this ablation's job to blur the two.
+            return skipped(
+                NAME,
+                "retrieval is replayed from a recording; the production retriever "
+                "cannot be re-run with the filter removed",
+            )
         if not target.satisfiable(golden):
             return skipped(NAME, "no chunk covers the evidence span under this chunking")
 

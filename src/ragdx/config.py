@@ -52,6 +52,10 @@ class RagdxConfig(BaseModel):
     #: Optional JSONL of ``{"golden_id": ..., "answer": ...}`` — supply it and
     #: the generation plane is diagnosed too.
     answers: Path | None = None
+    #: Optional JSONL of `Trace` records. Set this and production retrieval is
+    #: replayed from the recording instead of run against a built-in index —
+    #: the zero-integration path for a stack ragdx cannot call into.
+    traces: Path | None = None
     retrieval: RetrievalConfig = Field(default_factory=RetrievalConfig)
     chunking: ChunkingConfig = Field(default_factory=ChunkingConfig)
     ablations: AblationsConfig = Field(default_factory=AblationsConfig)
@@ -80,6 +84,7 @@ def load_config(path: Path) -> RagdxConfig:
             "corpus": (root / config.corpus).resolve(),
             "goldens": (root / config.goldens).resolve(),
             "answers": (root / config.answers).resolve() if config.answers else None,
+            "traces": (root / config.traces).resolve() if config.traces else None,
         }
     )
     return resolved

@@ -12,6 +12,7 @@ deploy, and reporting it as one would be actively misleading.
 from __future__ import annotations
 
 from ragdx.ablations.base import Ablation, DiagnosisTarget, skipped
+from ragdx.adapters.base import Replayed
 from ragdx.matching import gold_rank
 from ragdx.schema import AblationResult, Golden
 
@@ -36,10 +37,18 @@ class RankCutoff(Ablation):
         depth = target.config.rank_cutoff_k
         return target.n_chunks > 0 and depth * MIN_INDEX_HEADROOM > target.n_chunks
 
+    def _beyond_recording(self, target: DiagnosisTarget) -> bool:
+        retriever = target.retriever
+        return (
+            isinstance(retriever, Replayed)
+            and target.config.rank_cutoff_k > retriever.recorded_depth
+        )
+
     def applicable(self, target: DiagnosisTarget, golden: Golden) -> bool:
         return (
             target.config.rank_cutoff_k > target.k
             and not self._degenerate(target)
+            and not self._beyond_recording(target)
             and target.satisfiable(golden)
         )
 
@@ -47,6 +56,14 @@ class RankCutoff(Ablation):
         depth = target.config.rank_cutoff_k
         if depth <= target.k:
             return skipped(NAME, f"rank_cutoff_k ({depth}) is not deeper than k ({target.k})")
+        if self._beyond_recording(target):
+            retriever = target.retriever
+            recorded = retriever.recorded_depth if isinstance(retriever, Replayed) else 0
+            return skipped(
+                NAME,
+                f"retrieval is replayed from a recording {recorded} results deep; "
+                f"nothing here can say what a retrieval at k={depth} would return",
+            )
         if self._degenerate(target):
             return skipped(
                 NAME,
